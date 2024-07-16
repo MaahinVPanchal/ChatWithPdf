@@ -8,15 +8,14 @@ from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 
-# Load environment variables from .env file
+# Load environment variables from.env file
 load_dotenv()
 
-def get_pdf_text(pdf_docs):
+def get_pdf_text(pdf_doc):
+    pdf_reader = PdfReader(pdf_doc)
     text = ""
-    for pdf in pdf_docs:
-        pdf_reader = PdfReader(pdf)
-        for page in pdf_reader.pages:
-            text += page.extract_text()
+    for page in pdf_reader.pages:
+        text += page.extract_text()
     return text
 
 def get_text_chunks(text):
@@ -44,61 +43,59 @@ def get_conversation_chain(vectorstore):
     )
     return conversation_chain
 
-def handle_userinput(user_question):
-    if 'conversation' not in st.session_state or st.session_state.conversation is None:
-        st.session_state.conversation = get_conversation_chain(st.session_state.vectorstore)
-    response = st.session_state.conversation({'question': user_question})
-    st.session_state.chat_history = response['chat_history']
+def handle_userinput(user_question, vectorstore):
+    conversation_chain = get_conversation_chain(vectorstore)
+    response = conversation_chain({'question': user_question})
+    chat_history = response['chat_history']
 
     st.write("### Chat History:")
-    for i, message in enumerate(st.session_state.chat_history):
+    for i, message in enumerate(chat_history):
         if i % 2 == 0:
             st.markdown(f"**User:** {message.content}")
         else:
             st.markdown(f"**Bot:** {message.content}")
 
-def clear_output():
-    st.session_state.conversation = None
-    st.session_state.chat_history = None
-    st.session_state.vectorstore = None
-    st.session_state.raw_text = None
-
 def main():
     st.set_page_config(page_title="Chat with multiple PDFs", page_icon=":books:")
     st.header("Chat with multiple PDFs :books:")
 
+    if "pdf_docs" not in st.session_state:
+        st.session_state.pdf_docs = None
+    if "selected_pdf" not in st.session_state:
+        st.session_state.selected_pdf = None
     if "vectorstore" not in st.session_state:
         st.session_state.vectorstore = None
-    if "conversation" not in st.session_state:
-        st.session_state.conversation = None
     if "chat_history" not in st.session_state:
-        st.session_state.chat_history = None
-    if "raw_text" not in st.session_state:
-        st.session_state.raw_text = None
-
-    user_question = st.text_input("Ask a question about your documents:")
-    if user_question:
-        handle_userinput(user_question)
-
-    st.sidebar.subheader("Actions")
-    if st.sidebar.button("Clear Output"):
-        clear_output()
-        st.experimental_rerun()
+        st.session_state.chat_history = []
+    if "user_question" not in st.session_state:
+        st.session_state.user_question = ""
 
     with st.sidebar:
         st.subheader("Your documents")
         pdf_docs = st.file_uploader("Upload your PDFs here and click on 'Process'", accept_multiple_files=True)
         if st.button("Process"):
             with st.spinner("Processing..."):
-                raw_text = get_pdf_text(pdf_docs)
-                st.session_state.raw_text = raw_text  # Store raw text in session state
-                text_chunks = get_text_chunks(raw_text)
-                st.session_state.vectorstore = get_vectorstore(text_chunks)
-                st.session_state.conversation = get_conversation_chain(st.session_state.vectorstore)
+                st.session_state.pdf_docs = pdf_docs
 
-    # if st.session_state.raw_text:
-    #     st.subheader("Extracted Data:")
-    #     st.write(st.session_state.raw_text)
+    if st.session_state.pdf_docs:
+        st.subheader("Uploaded PDFs:")
+        pdf_options = [pdf.name for pdf in st.session_state.pdf_docs]
+        selected_pdf = st.selectbox("Select a PDF to chat with", pdf_options)
+        st.session_state.selected_pdf = selected_pdf
+        st.session_state.chat_history = []  # Clear chat history
+        st.session_state.user_question = ""  # Clear input field
+
+        if selected_pdf:
+            for pdf in st.session_state.pdf_docs:
+                if pdf.name == selected_pdf:
+                    raw_text = get_pdf_text(pdf)
+                    text_chunks = get_text_chunks(raw_text)
+                    st.session_state.vectorstore = get_vectorstore(text_chunks)
+
+    user_question = st.text_input("Ask a question about your document:", value=st.session_state.user_question)
+    if st.button("Submit"):
+        if user_question and st.session_state.vectorstore:
+            handle_userinput(user_question, st.session_state.vectorstore)
 
 if __name__ == '__main__':
     main()

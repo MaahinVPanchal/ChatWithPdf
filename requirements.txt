@@ -1,0 +1,10 @@
+streamlit
+python-dotenv
+PyPDF2
+langchain
+faiss-cpu
+openai
+
+# To install all dependencies
+# pip install -r requirements.txt
+# to run streamlit run app1.py

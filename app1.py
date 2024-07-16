@@ -55,33 +55,48 @@ def get_hypothetical_insight(api_key, text):
         # Use the extracted text to create a specific prompt
         prompt = (
     f"Please analyze the following balance sheet data:\n\n{text}\n\n"
-    "Your analysis should include the following sections:\n\n"
+    "Your analysis should include the following sections with detailed explanations and calculations:\n\n"
+    
     "1. Comparative Overview:\n"
     "- Provide a side-by-side comparison of the balance sheets for the years mentioned in the data.\n"
-    "- Highlight major changes in assets, liabilities, and equity.\n\n"
-    "2. Assets:\n"
+    "- Highlight major changes in assets, liabilities, and equity with percentage changes where applicable.\n\n"
+    
+    "2. Assets Analysis:\n"
     "- Compare current assets and non-current assets for both years.\n"
-    "- Identify significant changes in cash, accounts receivable, inventory, and fixed assets.\n\n"
-    "3. Liabilities:\n"
-    "- Compare current liabilities and non-current liabilities.\n"
-    "- Highlight changes in accounts payable, short-term debt, and long-term debt.\n\n"
-    "4. Equity:\n"
+    "- Identify significant changes in cash, accounts receivable, inventory, and fixed assets.\n"
+    "- Provide reasons for significant changes and their potential impact on the company.\n\n"
+    
+    "3. Liabilities Analysis:\n"
+    "- Compare current liabilities and non-current liabilities for both years.\n"
+    "- Highlight changes in accounts payable, short-term debt, and long-term debt.\n"
+    "- Discuss the implications of these changes on the company’s financial health.\n\n"
+    
+    "4. Equity Analysis:\n"
     "- Analyze changes in shareholders' equity.\n"
-    "- Discuss any new equity issued, retained earnings, and dividends paid.\n\n"
-    "5. Financial Ratios:\n"
-    "- Calculate and compare key financial ratios, including:\n"
-    "  - Current ratio\n"
-    "  - Quick ratio\n"
-    "  - Debt to equity ratio\n"
-    "  - Return on equity (ROE)\n\n"
+    "- Discuss any new equity issued, retained earnings, and dividends paid.\n"
+    "- Explain the impact of these changes on the company’s financial stability and investor confidence.\n\n"
+    
+    "5. Financial Ratios Calculation and Comparison:\n"
+    "- Calculate and compare key financial ratios using the following formulas for both years:\n"
+    "  - Current Ratio = Current Assets / Current Liabilities\n"
+    "  - Quick Ratio = (Current Assets - Inventory) / Current Liabilities\n"
+    "  - Debt to Equity Ratio = Total Liabilities / Shareholders' Equity\n"
+    "  - Return on Equity (ROE) = Net Income / Shareholders' Equity\n"
+    "- Provide detailed calculations for each ratio and explain what each ratio indicates about the company’s financial health.\n\n"
+    
     "6. Trends and Insights:\n"
-    "- Identify trends or patterns in the financial data.\n"
-    "- Provide insights into the company’s financial health and stability.\n\n"
-    "7. Conclusion:\n"
+    "- Identify trends or patterns in the financial data over the years.\n"
+    "- Discuss any emerging trends in the company’s assets, liabilities, and equity.\n"
+    "- Provide insights into the company’s financial health and stability, and discuss potential risks and opportunities.\n\n"
+    
+    "7. Conclusion and Recommendations:\n"
     "- Summarize the key findings from the analysis.\n"
-    "- Provide specific recommendations based on the balance sheet comparison.\n\n"
-    "Ensure to calculate the financial ratios accurately and provide the necessary recommendations."
+    "- Provide specific recommendations based on the balance sheet comparison, including potential actions the company could take to improve its financial position.\n"
+    "- Offer strategic advice to address identified risks and leverage opportunities for growth.\n"
+    
+    "Ensure to calculate the financial ratios accurately, provide detailed explanations for all findings, and include brief but actionable recommendations."
 )
+
 
 
         # Generate hypothetical insights using OpenAI's Chat model

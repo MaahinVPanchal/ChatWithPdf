@@ -1,45 +1,63 @@
 import streamlit as st
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
 from langchain.chat_models import ChatOpenAI
 from langchain.memory import ConversationBufferMemory
+from langchain.chains import ConversationalRetrievalChain
 from langchain.chains import ConversationChain
+
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Function to extract text from PDF
-def pdf_to_text(pdf_file):
-    try:
-        if not pdf_file.name.endswith('.pdf'):
-            st.error("Invalid file type. Please upload a PDF file.")
-            return None
-        reader = PdfReader(pdf_file)
-        text = ""
-        for page in reader.pages:
-            text += page.extract_text()
-        return text
-    except Exception as e:
-        st.error(f"Error extracting text from PDF: {e}")
-        return None
+def get_pdf_text(pdf_doc):
+    pdf_reader = PdfReader(pdf_doc)
+    text = ""
+    for page in pdf_reader.pages:
+        text += page.extract_text()
+    return text
 
-
-
-# Function to chunk text for OpenAI API
-def chunk_text(text, max_chunk_length=15000):
-    chunks = []
-    while len(text) > max_chunk_length:
-        chunk = text[:max_chunk_length]
-        chunks.append(chunk)
-        text = text[max_chunk_length:]
-    chunks.append(text)
+def get_text_chunks(text):
+    text_splitter = CharacterTextSplitter(
+        separator="\n",
+        chunk_size=1000,
+        chunk_overlap=200,
+        length_function=len
+    )
+    chunks = text_splitter.split_text(text)
     return chunks
 
-# Function to generate hypothetical insights
+def get_vectorstore(text_chunks):
+    embeddings = OpenAIEmbeddings()
+    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+    return vectorstore
+
+def get_conversation_chain(vectorstore):
+    llm = ChatOpenAI()
+    memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+    conversation_chain = ConversationalRetrievalChain.from_llm(
+        llm=llm,
+        retriever=vectorstore.as_retriever(),
+        memory=memory
+    )
+    return conversation_chain
+
+def handle_userinput(user_question, vectorstore):
+    conversation_chain = get_conversation_chain(vectorstore)
+    response = conversation_chain({'question': user_question})
+    chat_history = response['chat_history']
+
+    st.write("### Chat History:")
+    for i, message in enumerate(chat_history):
+        if i % 2 == 0:
+            st.markdown(f"**User:** {message.content}")
+        else:
+            st.markdown(f"**Bot:** {message.content}")
+
 def get_hypothetical_insight(api_key, text, prompt):
     try:
         # Initialize the text splitter
@@ -97,34 +115,37 @@ def get_hypothetical_insight(api_key, text, prompt):
         return None
 
 def main():
-    # Define the correct password from environment variables
-    CORRECT_PASSWORD = os.getenv('APP_PASSWORD')
-
-    # Create a login page
     st.set_page_config(page_title="Balance Sheet Analyzer", layout="wide")
-    st.title("Login")
-    password = st.text_input("Password", type="password")
-    login_button = st.button("Login")
 
-    if login_button and password == CORRECT_PASSWORD:
-        st.success("Login successful!")
-        session_state = st.session_state
-        session_state.logged_in = True
-    elif login_button:
-        st.error("Incorrect password. Please try again.")
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
 
-    # Check if logged in before displaying main app content
-    if getattr(st.session_state, 'logged_in', False):
+    if not st.session_state.logged_in:
+        # Login page
+        st.title("Login")
+        password = st.text_input("Password", type="password")
+        login_button = st.button("Login")
+
+        if login_button and password == os.getenv('APP_PASSWORD'):
+            st.session_state.logged_in = True
+            st.experimental_rerun()
+        elif login_button:
+            st.error("Incorrect password. Please try again.")
+    else:
         # Proceed to the main app content
         st.title("Balance Sheet Analyzer")
 
-        # File uploader
-        uploaded_file = st.file_uploader("Upload your balance sheet PDF", type=["pdf"])
+        # Sidebar link to "Chat with PDF"
+        st.sidebar.title("Options")
 
-        if uploaded_file is not None:
+        # File uploader
+        uploaded_files = st.file_uploader("Upload your balance sheet PDFs", type=["pdf"], accept_multiple_files=True)
+        selected_pdf = st.selectbox("Select a PDF to analyze", [file.name for file in uploaded_files])
+
+        if uploaded_files:
             try:
-                # Extract text from PDF
-                extracted_text = pdf_to_text(uploaded_file)
+                # Extract text from selected PDF
+                extracted_text = get_pdf_text(next(file for file in uploaded_files if file.name == selected_pdf))
                 if extracted_text:
                     # Define prompts
                     prompt_one = (
@@ -149,7 +170,7 @@ def main():
                         
                         "5. Financial Ratios Calculation and Comparison:\n"
                         "   - Calculate and compare key financial ratios using the following formulas for both years:\n"
-                        "     - Current Ratio = Current Assets / Current Liabilities\n"
+                        "     - CurrentRatio = Current Assets / Current Liabilities\n"
                         "     - Quick Ratio = (Current Assets - Inventory) / Current Liabilities\n"
                         "     - Debt to Equity Ratio = Total Liabilities / Shareholders' Equity\n"
                         "     - Return on Equity (ROE) = Net Income / Shareholders' Equity\n"
@@ -187,7 +208,7 @@ def main():
                         
                         "11. Asset Management:\n"
                         "   - Assess how effectively the company is using its assets to generate sales with the Asset Turnover Ratio.\n"
-                        "   - Provide insights intoimproving asset utilization.\n\n"
+                        "   - Provide insights into improving asset utilization.\n\n"
                         
                         "12. Receivables Management:\n"
                         "   - Discuss the company's effectiveness in collecting receivables based on the Accounts Receivable Turnover Ratio.\n"
@@ -200,7 +221,7 @@ def main():
 
                     # Button to analyze with both prompts
                     if st.button("Analyze"):
-                        # Get hypothetical insights with Prompt One
+                        # Get hypothetical insights with PromptOne
                         api_key = os.getenv('OPENAI_API_KEY')
                         observation_one = get_hypothetical_insight(api_key, extracted_text, prompt_one)
 
@@ -215,8 +236,16 @@ def main():
                         if observation_two:
                             st.write(observation_two)
 
+                    # Chat interface on the left sidebar
+                    st.sidebar.title("Chat with PDF")
+                    user_question = st.sidebar.text_input("Ask a question about the PDF")
+                    if user_question:
+                        # Get response from OpenAI's Chat model
+                        vectorstore = get_vectorstore(get_text_chunks(extracted_text))
+                        handle_userinput(user_question, vectorstore)
+
             except Exception as e:
-                st.error(f"Error processing file: {e}")
+                st.error(f"Error processing the uploaded file: {e}")
 
 if __name__ == "__main__":
     main()

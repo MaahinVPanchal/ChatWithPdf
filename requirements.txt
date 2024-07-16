@@ -5,7 +5,7 @@ langchain
 langchain-community
 faiss-cpu
 openai
-
+tiktoken
 # To install all dependencies
 # pip install -r requirements.txt
 # to run streamlit run app1.py

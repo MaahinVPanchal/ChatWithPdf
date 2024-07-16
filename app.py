@@ -96,9 +96,9 @@ def main():
                 st.session_state.vectorstore = get_vectorstore(text_chunks)
                 st.session_state.conversation = get_conversation_chain(st.session_state.vectorstore)
 
-    if st.session_state.raw_text:
-        st.subheader("Extracted Data:")
-        st.write(st.session_state.raw_text)
+    # if st.session_state.raw_text:
+    #     st.subheader("Extracted Data:")
+    #     st.write(st.session_state.raw_text)
 
 if __name__ == '__main__':
     main()

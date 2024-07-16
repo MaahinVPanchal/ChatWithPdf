@@ -6,7 +6,8 @@ langchain-community
 faiss-cpu
 openai
 tiktoken
-
+torch
+transformers
 
 
 # To install all dependencies

@@ -76,7 +76,7 @@ def get_hypothetical_insight(api_key, text, prompt):
         db = FAISS.from_texts(texts, embeddings)
 
         # Initialize the chat model
-        chat_model = ChatOpenAI(openai_api_key=api_key, model_name="gpt-3.5-turbo")
+        chat_model = ChatOpenAI(openai_api_key=api_key, model_name="gpt-4o")
 
         # Initialize memory for the conversation
         memory = ConversationBufferMemory(memory_key="history")
@@ -237,8 +237,8 @@ def main():
                             st.write(observation_two)
 
                     # Chat interface on the left sidebar
-                    st.sidebar.title("Chat with PDF")
-                    user_question = st.sidebar.text_input("Ask a question about the PDF")
+                    st.sidebar.title("Chat with Balance Sheet")
+                    user_question = st.sidebar.text_input("Ask question")
                     if user_question:
                         # Get response from OpenAI's Chat model
                         vectorstore = get_vectorstore(get_text_chunks(extracted_text))
